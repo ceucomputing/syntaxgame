@@ -60,29 +60,51 @@ var splitArray = function(array, separator) {
   return result;
 }
 
-// Generates HTML for array of tokens.
-var renderTokens = function(tokens) {
-  var html = '';
-  for (var i = 0; i < tokens.length; ++i) {
-    var token = tokens[i];
-    if (token.match(/\s/)) {
-      html += token;
-    } else {
-      html += '<a href="#">' + $('<div>').text(token).html() + '</a>';
+// Generates DOM for array of tokens.
+var renderSource = function(element, lines, handler) {
+  element.html('');
+  for (var i = 0; i < lines.length; ++i) {
+    var line = lines[i];
+    for (var j = 0; j < line.length; ++j) {
+      var token = line[j];
+      if (token.match(/\s/)) {
+        element.append(document.createTextNode(token));
+      } else {
+        $('<a>', {
+          href: '#',
+          text: token,
+          click: function() {
+            var localLine = i;
+            var localIndex = j;
+            return function(event) {
+              handler(localLine, localIndex, $(event.target));
+              return false;
+            }
+          }()
+        }).appendTo(element);
+      }
     }
   }
-  return html;
 }
 
-// Given a line of tokens, randomly chooses an correctable syntax error to insert.
+// Given an array of tokens for a line of Python code, randomly inserts an correctable syntax error.
 // If no error is possible, returns null.
-// Otherwise returns object of errorified tokens, index of errorneous token and corrected token.
+// Otherwise returns array of errorified tokens and array of valid corrections.
 var errorify = function(line) {
+  // Each candidate error is an array of:
+  // [0]: Corrected code
+  // [1]: Array of possible starting indices
+  // [2]: Number of tokens from starting index to replace
+  // [3]: Array of possible replacements
   var candidates = [];
+
   var inStringLiteral = false;
   var delimiter;
+  var delimiterIndex;
+
   var previousNonSpaceToken = null;
   var previousNonSpaceIndex;
+
   for (var index = 0; index < line.length; ++index) {
     var token = line[index];
     if (token.match(/\s+/)) {
@@ -103,12 +125,13 @@ var errorify = function(line) {
         }
         // End of string literal
         inStringLiteral = false;
+        candidates.push([token, [delimiterIndex, index], 1, [token === '\'' ? '"' : '\'']]);
       } else {
         // Start of string literal
         inStringLiteral = true;
         delimiter = token;
+        delimiterIndex = index;
       }
-      candidates.push([token, index, 1, [token === '\'' ? '"' : '\'']]);
     }
 
     // Ignore all non-quote tokens in string literals
@@ -127,22 +150,23 @@ var errorify = function(line) {
       }
       if (valid && previousNonSpaceToken !== null) {
         var fullToken = previousNonSpaceToken + token;
-        candidates.push([fullToken, previousNonSpaceIndex, index - previousNonSpaceIndex + 1, [previousNonSpaceToken]]);
+        candidates.push([fullToken, [previousNonSpaceIndex], index - previousNonSpaceIndex + 1, [previousNonSpaceToken]]);
       }
+      candidates.push([token, [index], 1, [';']]);
     }
 
     // Type 3: Detect keywords
     if (token === 'while') {
-      candidates.push([token, index, 1, ['when', 'whilst']]);
+      candidates.push([token, [index], 1, ['when', 'where']]);
     }
     if (token === 'in') {
-      candidates.push([token, index, 1, ['of', 'on', 'is']]);
+      candidates.push([token, [index], 1, ['of', 'on', 'is']]);
     }
     if (token === 'and') {
-      candidates.push([token, index, 1, ['&&']]);
+      candidates.push([token, [index], 1, ['&&']]);
     }
     if (token === 'or') {
-      candidates.push([token, index, 1, ['||']]);
+      candidates.push([token, [index], 1, ['||']]);
     }
     if (token === 'not') {
       var fullToken = token;
@@ -150,18 +174,18 @@ var errorify = function(line) {
       if (extend) {
         fullToken += line[index + 1];
       }
-      candidates.push([fullToken, index, extend ? 2 : 1, ['!']]);
+      candidates.push([fullToken, [index], extend ? 2 : 1, ['!']]);
     }
 
     // Type 4: Detect operators
     if (token === '%') {
-      candidates.push([token, index, 1, ['%%']]);
+      candidates.push([token, [index], 1, ['%%']]);
     }
     if (token === '==') {
-      candidates.push([token, index, 1, ['=']]);
+      candidates.push([token, [index], 1, ['=']]);
     }
     if (token === '!' && index + 1 < line.length && line[index + 1] === '=') {
-      candidates.push(['!=', index, 2, ['<>', '!==']]);
+      candidates.push(['!=', [index], 2, ['<>', '!==']]);
     }
 
     // Type 5: Detect brackets
@@ -181,12 +205,12 @@ var errorify = function(line) {
           complement = ')';
           break;
       }
-      var options = [complement + token.slice(1), token + token.charAt(0)];
+      var options = [complement + token.slice(1)];
       if (token.length > 1) {
         options.push(token.slice(1) + complement);
         options.push(token.slice(1));
       }
-      candidates.push([token, index, 1, options]);
+      candidates.push([token, [index], 1, options]);
     }
 
     // Update previous non-space, non-literal token
@@ -194,44 +218,61 @@ var errorify = function(line) {
     previousNonSpaceIndex = index;
   }
 
-  // DEBUG: log
-  console.log(line);
-  console.log(candidates);
-
-
   if (candidates.length === 0) {
-    return null;
+    return [line, []];
   }
 
   // Randomly choose an error
   var error = candidates[Math.floor(Math.random() * candidates.length)];
+  var errorIndex = error[1][Math.floor(Math.random() * error[1].length)];
   var errorToken = error[3][Math.floor(Math.random() * error[3].length)];
-  line.splice(error[1], error[2], errorToken)
-  return [line, error[1], error[0]];
+  line.splice(errorIndex, error[2], errorToken);
+  var corrections = [[errorIndex, error[0]]];
+  if (error[1].length > 1) {
+    for (var i = 0; i < error[1].length; ++i) {
+      if (error[1][i] != errorIndex) {
+        corrections.push([error[1][i], errorToken]);
+      }
+    }
+  }
+  return [line, corrections];
 }
 
 var source = $("#entry-template").html();
 var template = Handlebars.compile(source);
 var tokenizer = new Tokenizer(template({ x: 'example', 'value': 'my_list' }));
 var tokens = tokenizer.toTokens();
-var html = renderTokens(tokens);
-
-$('#source').html(html);
 
 var lines = splitArray(tokens, '\n');
-var errorTokens = [];
 
+var errors = [];
 for (var i = 0; i < lines.length; ++i) {
   var errored = errorify(lines[i]);
-  if (errored) {
-    errorTokens = errorTokens.concat(errored[0]);
-  }
+  errors.push(errored[1]);
 }
 
+var handler = function(line, index, element) {
+  bootbox.prompt({
+    title: 'What do you think this should be?',
+    value: element.text(),
+    callback: function(result) {
+      var error = errors[line];
+      for (var i = 0; i < error.length; ++i) {
+        var option = error[i];
+        if (option[0] == index && option[1] == result) {
+          // Correct!
+          element.text(result);
+          element.addClass('correct');
+          bootbox.alert('That\'s right!');
+          return;
+        }
+      }
+      bootbox.alert('That\'s wrong!');
+    }
+  });
+}
 
-var html = renderTokens(errorTokens);
-
-$('#source').html(html);
+var html = renderSource($('#source'), lines, handler);
 
 // var source   = $("#entry-template").html();
 // var template = Handlebars.compile(source);

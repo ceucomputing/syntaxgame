@@ -25,6 +25,10 @@ $icon-font-path: '../fonts/';
     text-decoration: none;
   }
 
+  #source a.correct {
+    border: 1px solid green;
+  }
+
 // .browserupgrade {
 //   margin: 0.2em 0;
 //   background: #ccc;
