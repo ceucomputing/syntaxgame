@@ -1,7 +1,12 @@
 // Syntax Error Game
 
-// 2017-06-02:
+// 2017-96-05: Implemented basic UI
+// 2017-06-02: Implemented syntax error generation and basic game
 // 2017-06-01: Implemented custom tokenizer
+
+// ================================================================================
+// TOKENIZER
+// ================================================================================
 
 // Custom tokenizer for Python code.
 var Tokenizer = function(source) {
@@ -43,53 +48,251 @@ Tokenizer.prototype.toTokens = function() {
   return result;
 }
 
-// Given a separator, splits given array into array of sub-arrays.
-var splitArray = function(array, separator) {
-  var result = [];
-  var current = [];
-  for (var index = 0; index <= array.length; ++index) {
-    var item = (index < array.length) ? array[index] : null;
-    if (item) {
-      current.push(item);
-    }
-    if (item === null || item === separator) {
-      result.push(current);
-      current = [];
-    }
-  }
-  return result;
+// ================================================================================
+// GAME
+// ================================================================================
+
+// Encapsulates game state and functionality.
+var Game = function() {
+  // Constants
+  this.CORRECT = 10;
+  this.WRONG = -5;
+  // TODO: Level and time limit progression constants
+
+  // Source-related state
+  this.lines = [];
+  this.correctionsByLine = [];
+  this.sourceElement = $('#source');
+
+  // Game-related state
+  this.score = 0;
+  this.scoreElement = $('#score');
+
+  this.level = 0;
+  this.levelElement = $('#level');
+
+  this.timer = null;
+  this.timeLeft = 0;
+  this.timeElement = $('#timeleft');
+
+  this.errorsTotal = 0;
+  this.errorsFound = 0;
+  this.errorsFoundElement = $('#errorsfound');
+  this.errorsLeftElement = $('#errorsleft');
 }
 
-// Generates DOM for array of tokens.
-var renderSource = function(element, lines, handler) {
-  element.html('');
-  for (var i = 0; i < lines.length; ++i) {
-    var line = lines[i];
+Game.prototype.start = function() {
+  this.setScore(0);
+  this.level = 0;
+
+  this.nextLevel();
+}
+
+Game.prototype.clickHandler = function(line, index, element) {
+  // Only handle click if timer is active
+  if (this.timer === null) return;
+  var that = this;
+  var prompt = bootbox.prompt({
+    title: 'What do you think this should be?',
+    value: element.text(),
+    callback: function(result) {
+      if (result === null) return;
+      result = result.trim();
+      if (result === element.text().trim()) {
+        // No change in answer, so treat as cancel
+        return;
+      }
+      var corrections = that.correctionsByLine[line];
+      for (var i = 0; i < corrections.length; ++i) {
+        var correction = corrections[i];
+        if (index === correction[0] && result === correction[1].trim()) {
+          // Correct answer given, so increase score and disable alternative options
+          that.correctionsByLine[line] = [];
+          element.text(correction[1]);
+          element.addClass('correct');
+          element.off('click');
+          that.incrementScore(that.CORRECT);
+          that.incrementErrorsFound();
+          return;
+        }
+      }
+      // Incorrect answer given, so reduce score and ask again
+      that.incrementScore(that.WRONG);
+      that.clickHandler(line, index, element);
+    }
+  });
+  prompt.init(function() {
+    $('.bootbox-input').select();
+  });
+}
+
+Game.prototype.setSource = function(source) {
+  var that = this;
+
+  // Obtain errorified source and candidate corrections
+  var tokenizer = new Tokenizer(source);
+  this.lines = splitArray(tokenizer.toTokens(), '\n');
+  this.correctionsByLine = [];
+  var errorLines = [];
+  for (var i = 0; i < this.lines.length; ++i) {
+    // Insert empty entry into correctionsByLine
+    this.correctionsByLine.push([]);
+    // Clone this.lines into errorLines
+    errorLines.push(this.lines[i].slice());
+  }
+  var candidates = [];
+  for (var i = 0; i < errorLines.length; ++i) {
+    var corrections = errorify(errorLines[i]);
+    if (corrections.length > 0) {
+      candidates.push([i, corrections]);
+    }
+  }
+
+  // Limit number of errors to this.errorsTotal
+  if (candidates.length <= this.errorsTotal) {
+    this.errorsTotal = candidates.length;
+  } else {
+    for (var i = 0; i < this.errorsTotal; ++i) {
+      // Choose random candidate
+      var random = i + Math.floor(Math.random() * (candidates.length - i));
+      // Swap with index i so that remaining candidates have equal probability of being chosen
+      var temp = candidates[i];
+      candidates[i] = candidates[random];
+      candidates[random] = temp;
+      // Process chosen candidate immediately
+      var chosen = candidates[i];
+      this.lines[chosen[0]] = errorLines[chosen[0]];
+      this.correctionsByLine[chosen[0]] = chosen[1];
+    }
+  }
+
+  // Create DOM elements and attach events
+  this.sourceElement.html('');
+  for (var i = 0; i < this.lines.length; ++i) {
+    var line = this.lines[i];
     for (var j = 0; j < line.length; ++j) {
       var token = line[j];
       if (token.match(/\s/)) {
-        element.append(document.createTextNode(token));
+        this.sourceElement.append(document.createTextNode(token));
       } else {
-        $('<a>', {
+        var element = $('<a>', {
           href: '#',
           text: token,
           click: function() {
             var localLine = i;
             var localIndex = j;
             return function(event) {
-              handler(localLine, localIndex, $(event.target));
+              that.clickHandler(localLine, localIndex, $(event.target));
               return false;
             }
           }()
-        }).appendTo(element);
+        });
+        var corrections = this.correctionsByLine[i];
+        // TODO: Make more efficient.
+        for (var k = 0; k < corrections.length; ++k) {
+          var correction = corrections[k];
+          if (j == correction[0]) {
+            correction.push(element);
+            break;
+          }
+        }
+        this.sourceElement.append(element);
       }
     }
   }
 }
 
-// Given an array of tokens for a line of Python code, randomly inserts an correctable syntax error.
-// If no error is possible, returns null.
-// Otherwise returns array of errorified tokens and array of valid corrections.
+Game.prototype.setScore = function(score) {
+  this.score = score;
+  this.scoreElement.text(score);
+}
+
+Game.prototype.incrementScore = function(increment) {
+  this.setScore(this.score + increment);
+}
+
+Game.prototype.clearTimer = function(timeLeft) {
+  if (this.timer) {
+    clearInterval(this.timer);
+    this.timer = null;
+  }
+  this.sourceElement.addClass('disabled');
+}
+
+Game.prototype.setTimer = function(timeLeft) {
+  this.clearTimer();
+  this.setTimeLeft(timeLeft);
+  this.timer = setInterval(this.handleTick.bind(this), 1000);
+  this.sourceElement.removeClass('disabled');
+}
+
+Game.prototype.setTimeLeft = function(timeLeft) {
+  this.timeLeft = timeLeft;
+  var min = Math.floor(timeLeft / 60);
+  var sec = timeLeft % 60;
+  min = (min < 10) ? ('0' + min) : min.toString();
+  sec = (sec < 10) ? ('0' + sec) : sec.toString();
+  this.timeElement.text(min + ':' + sec);
+}
+
+Game.prototype.handleTick = function() {
+  this.setTimeLeft(this.timeLeft - 1);
+  if (this.timeLeft == 0) {
+    // TODO: complete handling of time's up
+    this.clearTimer();
+    bootbox.hideAll();
+    bootbox.alert('Game over! Your final score is: ' + this.score);
+    // Highlight all remaining corrections
+    for (var i = 0; i < this.correctionsByLine.length; ++i) {
+      var corrections = this.correctionsByLine[i];
+      if (corrections.length > 0) {
+        var correction = corrections[0];
+        correction[2].addClass('wrong');
+      }
+    }
+  }
+}
+
+Game.prototype.setErrorsTotal = function(errorsTotal) {
+  this.errorsTotal = errorsTotal;
+  this.errorsLeftElement.text(this.errorsTotal - this.errorsFound);
+}
+
+Game.prototype.setErrorsFound = function(errorsFound) {
+  this.errorsFound = errorsFound;
+  this.errorsFoundElement.text(this.errorsFound);
+  this.errorsLeftElement.text(this.errorsTotal - this.errorsFound);
+}
+
+Game.prototype.incrementErrorsFound = function() {
+  this.setErrorsFound(this.errorsFound + 1);
+  if (this.errorsFound == this.errorsTotal) {
+    // Proceed to next level
+    this.nextLevel();
+  }
+}
+
+Game.prototype.nextLevel = function() {
+  // TODO: adapt according to level
+  this.setErrorsTotal(3);
+  this.setErrorsFound(0);
+
+  // TODO: Create proper generator
+  var source = $("#entry-template").html();
+  var template = Handlebars.compile(source);
+  var source = template({ x: 'example', 'value': 'my_list' });
+  this.setSource(source);
+
+  // TODO: adapt according to level
+  this.setTimer(30);
+}
+
+// ================================================================================
+// UTILITIES
+// ================================================================================
+
+// Given an array of tokens for one line of Python code, randomly inserts an correctable syntax error.
+// Modifies array of tokens in-place and returns array of valid corrections.
 var errorify = function(line) {
   // Each candidate error is an array of:
   // [0]: Corrected code
@@ -139,53 +342,84 @@ var errorify = function(line) {
       continue;
     }
 
-    // Type 2: Detect end-of-line colons
-    if (token === ':') {
-      var valid = true;
-      for (var i = index + 1; i < line.length; ++i) {
-        if (!line[i].match(/\s+/)) {
-          valid = false;
-          break;
+    switch (token) {
+      // Type 2: Detect end-of-line colons
+      case ':':
+        var valid = true;
+        for (var i = index + 1; i < line.length; ++i) {
+          if (!line[i].match(/\s+/)) {
+            valid = false;
+            break;
+          }
         }
-      }
-      if (valid && previousNonSpaceToken !== null) {
-        var fullToken = previousNonSpaceToken + token;
-        candidates.push([fullToken, [previousNonSpaceIndex], index - previousNonSpaceIndex + 1, [previousNonSpaceToken]]);
-      }
-      candidates.push([token, [index], 1, [';']]);
-    }
+        if (valid && previousNonSpaceToken !== null) {
+          var fullToken = previousNonSpaceToken + token;
+          candidates.push([fullToken, [previousNonSpaceIndex], index - previousNonSpaceIndex + 1, [previousNonSpaceToken]]);
+        }
+        candidates.push([token, [index], 1, [';']]);
+        break;
 
-    // Type 3: Detect keywords
-    if (token === 'while') {
-      candidates.push([token, [index], 1, ['when', 'where']]);
-    }
-    if (token === 'in') {
-      candidates.push([token, [index], 1, ['of', 'on', 'is']]);
-    }
-    if (token === 'and') {
-      candidates.push([token, [index], 1, ['&&']]);
-    }
-    if (token === 'or') {
-      candidates.push([token, [index], 1, ['||']]);
-    }
-    if (token === 'not') {
-      var fullToken = token;
-      var extend = index + 1 < line.length && line[index + 1].match(/\s+/);
-      if (extend) {
-        fullToken += line[index + 1];
-      }
-      candidates.push([fullToken, [index], extend ? 2 : 1, ['!']]);
-    }
+      // Type 3: Detect keywords
+      case 'True':
+        candidates.push([token, [index], 1, ['true', 'TRUE']]);
+        break;
+      case 'False':
+        candidates.push([token, [index], 1, ['false', 'FALSE']]);
+        break;
+      case 'None':
+        candidates.push([token, [index], 1, ['none', 'NONE', 'nil']]);
+        break;
+      case 'while':
+        candidates.push([token, [index], 1, ['when', 'where', 'which']]);
+        break;
+      case 'for':
+        candidates.push([token, [index], 1, ['four', 'fur']]);
+        break;
+      case 'if':
+        candidates.push([token, [index], 1, ['in', 'is', 'of']]);
+        break;
+      case 'in':
+        candidates.push([token, [index], 1, ['of', 'on', 'if']]);
+        break;
+      case 'and':
+        candidates.push([token, [index], 1, ['&&']]);
+        break;
+      case 'or':
+        candidates.push([token, [index], 1, ['||']]);
+        break;
+      case 'not':
+        var fullToken = token;
+        var extend = index + 1 < line.length && line[index + 1].match(/\s+/);
+        if (extend) {
+          fullToken += line[index + 1];
+        }
+        candidates.push([fullToken, [index], extend ? 2 : 1, ['!']]);
+        break;
 
-    // Type 4: Detect operators
-    if (token === '%') {
-      candidates.push([token, [index], 1, ['%%']]);
-    }
-    if (token === '==') {
-      candidates.push([token, [index], 1, ['=']]);
-    }
-    if (token === '!' && index + 1 < line.length && line[index + 1] === '=') {
-      candidates.push(['!=', [index], 2, ['<>', '!==']]);
+      // Type 4: Detect operators
+      case '%':
+        candidates.push([token, [index], 1, ['%%', 'mod']]);
+        break;
+      case '==':
+        candidates.push([token, [index], 1, ['=']]);
+        break;
+      case '+':
+        candidates.push([token, [index], 1, ['++']]);
+        break;
+      case ',':
+        candidates.push([token, [index], 1, ['.', ';']]);
+        break;
+      case '.':
+        candidates.push([token, [index], 1, [',']]);
+        break;
+      case '-':
+        candidates.push([token, [index], 1, ['--']]);
+        break;
+      case '!':
+        if (index + 1 < line.length && line[index + 1] === '=') {
+          candidates.push(['!=', [index], 2, ['<>', '!==']]);
+        }
+        break;
     }
 
     // Type 5: Detect brackets
@@ -219,7 +453,7 @@ var errorify = function(line) {
   }
 
   if (candidates.length === 0) {
-    return [line, []];
+    return [];
   }
 
   // Randomly choose an error
@@ -235,44 +469,40 @@ var errorify = function(line) {
       }
     }
   }
-  return [line, corrections];
+  return corrections;
 }
 
-var source = $("#entry-template").html();
-var template = Handlebars.compile(source);
-var tokenizer = new Tokenizer(template({ x: 'example', 'value': 'my_list' }));
-var tokens = tokenizer.toTokens();
-
-var lines = splitArray(tokens, '\n');
-
-var errors = [];
-for (var i = 0; i < lines.length; ++i) {
-  var errored = errorify(lines[i]);
-  errors.push(errored[1]);
-}
-
-var handler = function(line, index, element) {
-  bootbox.prompt({
-    title: 'What do you think this should be?',
-    value: element.text(),
-    callback: function(result) {
-      var error = errors[line];
-      for (var i = 0; i < error.length; ++i) {
-        var option = error[i];
-        if (option[0] == index && option[1] == result) {
-          // Correct!
-          element.text(result);
-          element.addClass('correct');
-          bootbox.alert('That\'s right!');
-          return;
-        }
-      }
-      bootbox.alert('That\'s wrong!');
+// Given a separator, splits given array into array of sub-arrays.
+var splitArray = function(array, separator) {
+  var result = [];
+  var current = [];
+  for (var index = 0; index < array.length; ++index) {
+    var item = array[index];
+    current.push(item);
+    if (item === separator) {
+      result.push(current);
+      current = [];
     }
-  });
+  }
+  result.push(current);
+  return result;
 }
 
-var html = renderSource($('#source'), lines, handler);
+// ================================================================================
+// GLOBALS
+// ================================================================================
+
+// Global game object.
+var game;
+
+$(document).ready(function() {
+  game = new Game();
+  game.start();
+
+  $('#main').on('click', function() {
+    game.start();
+  });
+});
 
 // var source   = $("#entry-template").html();
 // var template = Handlebars.compile(source);

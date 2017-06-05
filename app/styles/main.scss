@@ -3,11 +3,42 @@ $icon-font-path: '../fonts/';
 @import "bower_components/bootstrap-sass/assets/stylesheets/_bootstrap.scss";
 // endbower
 
+body {
+  background: black;
+  margin: 0;
+  padding: 24px;
+}
 
+#left {
+  background: white;
+  border-radius: 5px;
+  margin-bottom: 24px;
+  padding: 24px;
+}
+
+  #left h1 {
+    border-bottom: 1px dashed gray;
+    font-family: Georgia, serif;
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    margin-top: 0;
+    padding-bottom: 12px;
+    text-transform: uppercase;
+  }
 
 #source {
-  font-size: 16px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  height: 600px;
+  overflow-y: scroll;
+  padding: 0;
 }
+
+  #source.disabled a {
+    color: gray;
+  }
 
   #source a {
     border: 1px solid transparent;
@@ -28,6 +59,44 @@ $icon-font-path: '../fonts/';
   #source a.correct {
     border: 1px solid green;
   }
+
+  #source a.wrong {
+    border: 1px solid red;
+  }
+
+#right { }
+
+  #right .well {
+    background: gray;
+    color: white;
+    text-align: center;
+  }
+
+  #right .score-well {
+    background: goldenrod;
+    color: white;
+  }
+
+  #right h2 {
+    font-family: Georgia, serif;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  #right .number {
+    font-size: 64px;
+    font-weight: bold;
+    line-height: 72px;
+  }
+
+.bootbox-input {
+  font-family: monospace;
+  font-size: 72px;
+  height: 128px;
+  text-align: center;
+}
 
 // .browserupgrade {
 //   margin: 0.2em 0;

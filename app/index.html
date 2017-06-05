@@ -75,31 +75,40 @@
 
     <div class="container">
 
-      <div class="col-md-9">
+      <div id="left" class="col-md-8">
         <h1>Program 1</h1>
-        <div id="program">
-          <pre id="source"></pre>
-        </div>
+        <pre id="source"></pre>
       </div>
 
-      <div class="col-md-3">
-        <div class="well">
-          Errors Found: 0
+      <div id="right" class="col-md-4">
+
+        <div class="well col-md-6">
+          <h2>Errors Found</h2>
+          <div id="errorsfound" class="number">0</div>
         </div>
-        <div class="well">
-          Errors Left: 0
+        <div class="well col-md-6">
+          <h2>Errors Left</h2>
+          <div id="errorsleft" class="number">0</div>
         </div>
-        <div class="well">
-          Time Left: 0
+        <div class="well col-md-12">
+          <h2>Time Left</h2>
+          <div id="timeleft" class="number">00:00</div>
         </div>
-        <div class="well">
-          Score: 0
+        <div class="well score-well col-md-12">
+          <h2>Score</h2>
+          <div id="score" class="number">0</div>
         </div>
+
+        <form>
+          <input id="main" class="col-md-6" type="button" value="Entry Point">
+          <input class="col-md-6" type="button" value="Hello">
+        </form>
+
       </div>
 
     </div>
 
-<script id="entry-template" type="text/x-handlebars-template">
+<script id="entry-template-temp" type="text/x-handlebars-template">
 
 if x != 0 and y == 4 or z > 2:
     print('not == !=')
@@ -107,7 +116,7 @@ if x != 0 and y == 4 or z > 2:
 
 </script>
 
-<script id="entry-template-temp" type="text/x-handlebars-template">#LISTEXTRACT_PART1
+<script id="entry-template" type="text/x-handlebars-template">#LISTEXTRACT_PART1
 {{x}}_extract = []
 
 #LISTEXTRACT_PART2_OPTION1
