@@ -49,6 +49,21 @@ Tokenizer.prototype.toTokens = function() {
 }
 
 // ================================================================================
+// GENERATOR
+// ================================================================================
+
+var Generator = function() {
+  var STRLIST = [
+    ['names', 'names = [\'Siti\', \'Alex\', \'Bala\''],
+    ['places', 'places = [\'Home\', \'School\'']
+  ];
+  var LIST = [
+    ['names', 'names = [\'Siti\', \'Alex\', \'Bala\''],
+    ['places', 'places = [\'Home\', \'School\'']
+  ];
+}
+
+// ================================================================================
 // GAME
 // ================================================================================
 
@@ -83,8 +98,7 @@ var Game = function() {
 
 Game.prototype.start = function() {
   this.setScore(0);
-  this.level = 0;
-
+  this.setLevel(0);
   this.nextLevel();
 }
 
@@ -150,20 +164,19 @@ Game.prototype.setSource = function(source) {
 
   // Limit number of errors to this.errorsTotal
   if (candidates.length <= this.errorsTotal) {
-    this.errorsTotal = candidates.length;
-  } else {
-    for (var i = 0; i < this.errorsTotal; ++i) {
-      // Choose random candidate
-      var random = i + Math.floor(Math.random() * (candidates.length - i));
-      // Swap with index i so that remaining candidates have equal probability of being chosen
-      var temp = candidates[i];
-      candidates[i] = candidates[random];
-      candidates[random] = temp;
-      // Process chosen candidate immediately
-      var chosen = candidates[i];
-      this.lines[chosen[0]] = errorLines[chosen[0]];
-      this.correctionsByLine[chosen[0]] = chosen[1];
-    }
+    this.setErrorsTotal(candidates.length);
+  }
+  for (var i = 0; i < this.errorsTotal; ++i) {
+    // Choose random candidate
+    var random = i + Math.floor(Math.random() * (candidates.length - i));
+    // Swap with index i so that remaining candidates have equal probability of being chosen
+    var temp = candidates[i];
+    candidates[i] = candidates[random];
+    candidates[random] = temp;
+    // Process chosen candidate immediately
+    var chosen = candidates[i];
+    this.lines[chosen[0]] = errorLines[chosen[0]];
+    this.correctionsByLine[chosen[0]] = chosen[1];
   }
 
   // Create DOM elements and attach events
@@ -264,6 +277,11 @@ Game.prototype.setErrorsFound = function(errorsFound) {
   this.errorsLeftElement.text(this.errorsTotal - this.errorsFound);
 }
 
+Game.prototype.setLevel = function(level) {
+  this.level = level;
+  this.levelElement.text(level);
+}
+
 Game.prototype.incrementErrorsFound = function() {
   this.setErrorsFound(this.errorsFound + 1);
   if (this.errorsFound == this.errorsTotal) {
@@ -273,8 +291,10 @@ Game.prototype.incrementErrorsFound = function() {
 }
 
 Game.prototype.nextLevel = function() {
+  this.setLevel(this.level + 1);
+
   // TODO: adapt according to level
-  this.setErrorsTotal(3);
+  this.setErrorsTotal(5);
   this.setErrorsFound(0);
 
   // TODO: Create proper generator
@@ -284,7 +304,7 @@ Game.prototype.nextLevel = function() {
   this.setSource(source);
 
   // TODO: adapt according to level
-  this.setTimer(30);
+  this.setTimer(60);
 }
 
 // ================================================================================
