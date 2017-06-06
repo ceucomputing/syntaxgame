@@ -1,5 +1,6 @@
 // Syntax Error Game
 
+// 2017-06-06: Implemented basic generator
 // 2017-96-05: Implemented basic UI
 // 2017-06-02: Implemented syntax error generation and basic game
 // 2017-06-01: Implemented custom tokenizer
@@ -52,15 +53,406 @@ Tokenizer.prototype.toTokens = function() {
 // GENERATOR
 // ================================================================================
 
-var Generator = function() {
+var Generator = function(complexity) {
   var STRLIST = [
-    ['names', 'names = [\'Siti\', \'Alex\', \'Bala\''],
-    ['places', 'places = [\'Home\', \'School\'']
+    ,
+    ['places', 'places = [\'Home\', \'School\']']
   ];
   var LIST = [
-    ['names', 'names = [\'Siti\', \'Alex\', \'Bala\''],
-    ['places', 'places = [\'Home\', \'School\'']
+    ['names', 'names = [\'Siti\', \'Alex\', \'Bala\']'],
+    ['places', 'places = [\'Home\', \'School\']']
   ];
+
+  this.complexity = complexity;
+
+
+
+}
+
+Generator.prototype.strList = function() {
+  switch (randIndex(4)) {
+    case 0:
+      return ['names', 'names = [\'Siti\', \'Alex\', \'Bala\']'];
+    case 1:
+      return ['places', 'places = [\'Home\', \'School\']'];
+    case 2:
+      return ['fruits', 'fruits = [\'Apple\', \'Orange\', \'Pear\']'];
+    case 3:
+      return ['s', 's = ["A", "B", "C", "D"]'];
+  }
+}
+
+Generator.prototype.intList = function() {
+  var length = 2 + randIndex(3);
+  var line = ' = [';
+  switch (randIndex(3)) {
+    case 0:
+      for (var i = 0; i < length; ++i) {
+        line += 1965 + randIndex(2020 - 1965) + ', ';
+      }
+      line = line.slice(0, -2) + ']';
+      return ['years', 'years' + line];
+    case 1:
+      for (var i = 0; i < length; ++i) {
+        line += 15 + randIndex(99 - 15) + ', ';
+      }
+      line = line.slice(0, -2) + ']';
+      return ['ages', 'ages' + line];
+    case 2:
+      for (var i = 0; i < length; ++i) {
+        line += (randIndex(2) == 0 ? -1 : 1) * (1 + randIndex(100)) + ', ';
+      }
+      line = line.slice(0, -2) + ']';
+      return ['x', 'x' + line];
+  }
+}
+
+Generator.prototype.floatList = function() {
+  var length = 2 + randIndex(3);
+  var line = ' = [';
+  switch (randIndex(2)) {
+    case 0:
+      for (var i = 0; i < length; ++i) {
+        var dp = randIndex(2);
+        line += ((randIndex(2) == 0 ? -1 : 1) * (1.0 + Math.random() * 100.0)).toFixed(dp);
+        if (randIndex(2) == 0) {
+          line += randIndex(2) == 0 ? 'e' : 'E';
+          line += (randIndex(2) == 0 ? -1 : 1) * (1 + randIndex(9));
+        }
+        line += ', ';
+      }
+      line = line.slice(0, -2) + ']';
+      var name = randIndex(2) == 0 ? 'readings' : 'y';
+      return [name, name + line];
+    case 1:
+      for (var i = 0; i < length; ++i) {
+        var dp = randIndex(2);
+        line += (1.0 + Math.random() * 100.0).toFixed(dp);
+        line += ', ';
+      }
+      line = line.slice(0, -2) + ']';
+      return ['lengths', 'lengths' + line];
+  }
+}
+
+Generator.prototype.numberList = function() {
+  switch (randIndex(2)) {
+    case 0:
+      return this.intList();
+    case 1:
+      return this.floatList();
+  }
+}
+
+Generator.prototype.expanders = {
+  'PROGRAM': function() {
+    var choices = 4;
+    if (this.complexity == 0) {
+      // DEBUG: change back to 4 afterwards
+      choices = 4;
+    }
+    switch (randIndex(choices)) {
+      case 0:
+        return ['@MIN'];
+      case 1:
+        return ['@MAX'];
+      case 2:
+        return ['@AVERAGE'];
+      case 3:
+        return ['@SEARCH'];
+      case 4:
+        return ['@EXTRACT'];
+    }
+  },
+
+  // Minimum function
+  'MIN': function() {
+    var list = this.numberList();
+    switch (this.complexity) {
+      case 0:
+        return [
+          list[1],
+          '@PRINT 0 Minimum min(' + list[0] + ')'
+        ];
+      case 1:
+        return [
+          list[1],
+          '@MIN1_PART0 ' + list[0],
+          spaces(1) + list[0] + '_min = ' + list[0] + '[0]',
+          spaces(1) + 'for i in ' + list[0] + ':',
+          '@LT 2 if i ' + list[0] + '_min',
+          spaces(3) + list[0] + '_min = i',
+          '@PRINT 0 Minimum ' + list[0] + '_min'
+        ];
+      default:
+        return [
+          list[1],
+          '@MIN2_PART0 ' + list[0],
+          spaces(1) + list[0] + '_min = ' + list[0] + '[0]',
+          spaces(1) + list[0] + '_min_index = 0',
+          spaces(1) + 'for i in range(len(' + list[0] + ')):',
+          '@LT 2 if ' + list[0] + '[i] ' + list[0] + '_min',
+          spaces(3) + list[0] + '_min = ' + list[0] + '[i]',
+          spaces(3) + list[0] + '_min_index = i',
+          '@PRINT 0 Minimum ' + list[0] + '_min',
+          '@PRINT 0 Minimum-index ' + list[0] + '_min_index'
+        ];
+    }
+  },
+  'MIN1_PART0': function(x) {
+    switch(randIndex(2)) {
+      case 0:
+        return [
+          '@IFLEN0 0 ' + x,
+          spaces(1) + x + '_min = None',
+          'else:'
+        ];
+      case 1:
+        return [
+          x + '_min = None',
+          '@IFLENNOT0 0 ' + x
+        ];
+    }
+  },
+  'MIN2_PART0': function(x) {
+    switch(randIndex(2)) {
+      case 0:
+        return [
+          '@IFLEN0 0 ' + x,
+          spaces(1) + x + '_min = None',
+          spaces(1) + x + '_min_index = None',
+          'else:'
+        ];
+      case 1:
+        return [
+          x + '_min = None',
+          x + '_min_index = None',
+          '@IFLENNOT0 0 ' + x
+        ];
+    }
+  },
+
+  // Maximum function
+  'MAX': function() {
+    var list = this.numberList();
+    switch (this.complexity) {
+      case 0:
+        return [
+          list[1],
+          '@PRINT 0 Maximum max(' + list[0] + ')'
+        ];
+      case 1:
+        return [
+          list[1],
+          '@MAX1_PART0 ' + list[0],
+          spaces(1) + list[0] + '_max = ' + list[0] + '[0]',
+          spaces(1) + 'for i in ' + list[0] + ':',
+          '@LT 2 if ' + list[0] + '_max i',
+          spaces(3) + list[0] + '_max = i',
+          '@PRINT 0 Maximum ' + list[0] + '_max'
+        ];
+      default:
+        return [
+          list[1],
+          '@MAX2_PART0 ' + list[0],
+          spaces(1) + list[0] + '_max = ' + list[0] + '[0]',
+          spaces(1) + list[0] + '_max_index = 0',
+          spaces(1) + 'for i in range(len(' + list[0] + ')):',
+          '@LT 2 if ' + list[0] + '_max ' + list[0] + '[i]',
+          spaces(3) + list[0] + '_max = ' + list[0] + '[i]',
+          spaces(3) + list[0] + '_max_index = i',
+          '@PRINT 0 Maximum ' + list[0] + '_max',
+          '@PRINT 0 Maximum-index ' + list[0] + '_max_index'
+        ];
+    }
+  },
+  'MAX1_PART0': function(x) {
+    switch(randIndex(2)) {
+      case 0:
+        return [
+          '@IFLEN0 0 ' + x,
+          spaces(1) + x + '_max = None',
+          'else:'
+        ];
+      case 1:
+        return [
+          x + '_max = None',
+          '@IFLENNOT0 0 ' + x
+        ];
+    }
+  },
+  'MAX2_PART0': function(x) {
+    switch(randIndex(2)) {
+      case 0:
+        return [
+          '@IFLEN0 0 ' + x,
+          spaces(1) + x + '_max = None',
+          spaces(1) + x + '_max_index = None',
+          'else:'
+        ];
+      case 1:
+        return [
+          x + '_max = None',
+          x + '_max_index = None',
+          '@IFLENNOT0 0 ' + x
+        ];
+    }
+  },
+
+  // Average function
+  'AVERAGE': function() {
+    var list = this.numberList();
+    switch (this.complexity) {
+      case 0:
+        return [
+          list[1],
+          '@IFLENNOT0 0 ' + list[0],
+          spaces(1) + list[0] + '_average = sum(' + list[0] + ') / len(' + list[0] + ')',
+          '@PRINT 1 Average ' + list[0] + '_average'
+        ];
+      default:
+        return [
+          list[1],
+          '@AVERAGE1_PART0 ' + list[0],
+          spaces(1) + list[0] + '_average = 0',
+          spaces(1) + 'for i in ' + list[0] + ':',
+          '@AUGMENT 2 ' + list[0] + '_average + i',
+          '@AUGMENT 1 ' + list[0] + '_average / len(' + list[0] + ')',
+          '@PRINT 0 Average ' + list[0] + '_average'
+        ];
+    }
+  },
+  'AVERAGE1_PART0': function(x) {
+    switch(randIndex(2)) {
+      case 0:
+        return [
+          '@IFLEN0 0 ' + x,
+          spaces(1) + x + '_average = None',
+          'else:'
+        ];
+      case 1:
+        return [
+          x + '_average = None',
+          '@IFLENNOT0 0 ' + x
+        ];
+    }
+  },
+
+  // Search function
+  'SEARCH': function() {
+    var list = this.strList();
+    switch (this.complexity) {
+      case 0:
+        return [
+          list[1],
+          'search = input(\'Enter search: \')',
+          list[0] + '_result = search in ' + list[0],
+          '@PRINT 0 Search ' + list[0] + '_result'
+        ];
+      default:
+        return [
+          list[1],
+          'search = input(\'Enter search: \')',
+          '@SEARCH1_PART0 ' + list[0],
+          '@PRINT 0 Search ' + list[0] + '_index'
+        ];
+    }
+  },
+  'SEARCH1_PART0': function(x) {
+    switch(randIndex(2)) {
+      case 0:
+        return [
+          x + '_index = None',
+          'for i in range(len(' + x + ')):',
+          spaces(1) + 'if ' + x + '[i] == search:',
+          spaces(2) + x + '_index = i'
+        ];
+      case 1:
+        return [
+          x + '_index = None',
+          'i = 0',
+          '@LT 0 while i len(' + x + ')',
+          spaces(1) + 'if ' + x + '[i] == search:',
+          spaces(2) + x + '_index = i',
+          '@AUGMENT 1 i + 1'
+        ];
+    }
+  },
+
+  // Utility functions
+  'IFLEN0': function(indent, x) {
+    var s = spaces(indent);
+    switch (randIndex(2)) {
+      case 0:
+        return [s + 'if len(' + x + ') == 0:'];
+      case 1:
+        return [s + 'if ' + x + ' == []:'];
+    }
+  },
+  'IFLENNOT0': function(indent, x) {
+    var s = spaces(indent);
+    switch (randIndex(3)) {
+      case 0:
+        return [s + 'if len(' + x + ') != 0:'];
+      case 1:
+        return [s + 'if len(' + x + ') > 0:'];
+      case 2:
+        return [s + 'if ' + x + ' != []:'];
+    }
+  },
+  'LT': function(indent, keyword, x, y) {
+    var s = spaces(indent);
+    switch (randIndex(2)) {
+      case 0:
+        return [s + keyword + ' ' + x + ' < ' + y + ':'];
+      case 1:
+        return [s + keyword + ' ' + y + ' > ' + x + ':'];
+    }
+  },
+  'PRINT': function(indent, label, x) {
+    var s = spaces(indent);
+    switch (randIndex(2)) {
+      case 0:
+        return [s + 'print(' + x + ')'];
+      case 1:
+        return [s + 'print(\'' + label + ': \' + str(' + x + '))'];
+    }
+  },
+  'AUGMENT': function(indent, x, op, y) {
+    var s = spaces(indent);
+    switch (randIndex(2)) {
+      case 0:
+        return [s + x + ' ' + op + '= ' + y];
+      case 1:
+        return [s + x + ' = ' + x + ' ' + op + ' ' + y];
+    }
+  },
+}
+
+Generator.prototype.generateProgram = function() {
+
+  // Strategy
+  // Expand until no changes!
+  // @AVERAGE2 {{x}}
+
+  var program = ['@PROGRAM'];
+
+
+  var changed;
+  do {
+    changed = false;
+    for (var i = program.length - 1; i >= 0; --i) {
+      var line = program[i];
+      if (line.charAt(0) == '@') {
+        changed = true;
+        var command = line.slice(1).split(' ');
+        var expansion = this.expanders[command[0]].apply(this, command.slice(1));
+        Array.prototype.splice.apply(program, [i, 1].concat(expansion));
+      }
+    }
+  } while (changed);
+
+  return program;
 }
 
 // ================================================================================
@@ -94,6 +486,8 @@ var Game = function() {
   this.errorsFound = 0;
   this.errorsFoundElement = $('#errorsfound');
   this.errorsLeftElement = $('#errorsleft');
+
+  this.generator = new Generator(2);
 }
 
 Game.prototype.start = function() {
@@ -168,7 +562,7 @@ Game.prototype.setSource = function(source) {
   }
   for (var i = 0; i < this.errorsTotal; ++i) {
     // Choose random candidate
-    var random = i + Math.floor(Math.random() * (candidates.length - i));
+    var random = i + randIndex(candidates.length - i);
     // Swap with index i so that remaining candidates have equal probability of being chosen
     var temp = candidates[i];
     candidates[i] = candidates[random];
@@ -293,18 +687,26 @@ Game.prototype.incrementErrorsFound = function() {
 Game.prototype.nextLevel = function() {
   this.setLevel(this.level + 1);
 
-  // TODO: adapt according to level
-  this.setErrorsTotal(5);
-  this.setErrorsFound(0);
+
 
   // TODO: Create proper generator
-  var source = $("#entry-template").html();
-  var template = Handlebars.compile(source);
-  var source = template({ x: 'example', 'value': 'my_list' });
+  this.generator.complexity = Math.floor(this.level / 5);
+  var source = this.generator.generateProgram();
+
+  var errors = Math.floor(source.length * this.level / (this.level + 5));
+  this.setErrorsTotal(Math.max(1, errors));
+  this.setErrorsFound(0);
+
+  source = source.join('\n');
+
   this.setSource(source);
 
   // TODO: adapt according to level
-  this.setTimer(60);
+  var time = 30;
+  if (this.level >= 15) {
+    time = Math.floor(time / Math.pow(1.1, this.level - 15));
+  }
+  this.setTimer(Math.max(1, time));
 }
 
 // ================================================================================
@@ -387,13 +789,13 @@ var errorify = function(line) {
         candidates.push([token, [index], 1, ['false', 'FALSE']]);
         break;
       case 'None':
-        candidates.push([token, [index], 1, ['none', 'NONE', 'nil']]);
+        candidates.push([token, [index], 1, ['none', 'NONE']]);
         break;
       case 'while':
         candidates.push([token, [index], 1, ['when', 'where', 'which']]);
         break;
       case 'for':
-        candidates.push([token, [index], 1, ['four', 'fur']]);
+        candidates.push([token, [index], 1, ['four', 'fur', 'fore']]);
         break;
       case 'if':
         candidates.push([token, [index], 1, ['in', 'is', 'of']]);
@@ -427,10 +829,10 @@ var errorify = function(line) {
         candidates.push([token, [index], 1, ['++']]);
         break;
       case ',':
-        candidates.push([token, [index], 1, ['.', ';']]);
+        candidates.push([token, [index], 1, ['.', ';', ',,']]);
         break;
       case '.':
-        candidates.push([token, [index], 1, [',']]);
+        candidates.push([token, [index], 1, ['..']]);
         break;
       case '-':
         candidates.push([token, [index], 1, ['--']]);
@@ -443,7 +845,7 @@ var errorify = function(line) {
     }
 
     // Type 5: Detect brackets
-    if (token.charAt(0).match(/\(|\)|\[|\]/)) {
+    if (token.charAt(0).match(/\(|\)/)) {
       var complement;
       switch (token.charAt(0)) {
         case '(':
@@ -452,12 +854,6 @@ var errorify = function(line) {
         case ')':
           complement = ']';
           break;
-        case '[':
-          complement = '(';
-          break;
-        case ']':
-          complement = ')';
-          break;
       }
       var options = [complement + token.slice(1)];
       if (token.length > 1) {
@@ -465,6 +861,9 @@ var errorify = function(line) {
         options.push(token.slice(1));
       }
       candidates.push([token, [index], 1, options]);
+    }
+    if (token.charAt(0).match(/\[|\]/) && token.length > 1) {
+      candidates.push([token, [index], 1, [token.slice(1)]]);
     }
 
     // Update previous non-space, non-literal token
@@ -477,9 +876,9 @@ var errorify = function(line) {
   }
 
   // Randomly choose an error
-  var error = candidates[Math.floor(Math.random() * candidates.length)];
-  var errorIndex = error[1][Math.floor(Math.random() * error[1].length)];
-  var errorToken = error[3][Math.floor(Math.random() * error[3].length)];
+  var error = candidates[randIndex(candidates.length)];
+  var errorIndex = error[1][randIndex(error[1].length)];
+  var errorToken = error[3][randIndex(error[3].length)];
   line.splice(errorIndex, error[2], errorToken);
   var corrections = [[errorIndex, error[0]]];
   if (error[1].length > 1) {
@@ -508,6 +907,20 @@ var splitArray = function(array, separator) {
   return result;
 }
 
+// Returns a string of spaces for the given level of indentation.
+var spaces = function(indent) {
+  var result = '';
+  while (indent > 0) {
+    result += '    ';
+    --indent;
+  }
+  return result;
+}
+
+var randIndex = function(length) {
+  return Math.floor(Math.random() * length);
+}
+
 // ================================================================================
 // GLOBALS
 // ================================================================================
@@ -524,11 +937,3 @@ $(document).ready(function() {
   });
 });
 
-// var source   = $("#entry-template").html();
-// var template = Handlebars.compile(source);
-
-// var context = {title: "My New Post", body: "This is my first post!"};
-// var html    = template(context);
-
-// console.log(html);
-// $('#output').html(html);

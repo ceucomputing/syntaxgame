@@ -108,7 +108,7 @@
 
     </div>
 
-<script id="entry-template" type="text/x-handlebars-template"># Input
+<script id="entry-template-temp" type="text/x-handlebars-template"># Input
 input_text = input("Enter the input text: ")
 
 # Process
@@ -128,7 +128,7 @@ print(acronym)
 
 </script>
 
-<script id="entry-template-temp" type="text/x-handlebars-template">#LISTEXTRACT_PART1
+<script id="entry-template" type="text/x-handlebars-template">#LISTEXTRACT_PART1
 {{x}}_extract = []
 
 #LISTEXTRACT_PART2_OPTION1
@@ -140,7 +140,6 @@ for i in {{x}}:
 #LISTEXTRACT_PART2_OPTION2
 for i in range(len({{x}})):
     if {{x}}[i] in {{value}}:
-        #AUGMENT({{x}}_extract, +, {{x}}[i:i + 1])
         {{x}}_extract += {{x}}[i:i + 1]
 
 #LISTEXTRACT_PART2_OPTION3
@@ -148,7 +147,6 @@ i = 0
 #WHILE_LT(i, len({{x}}))
 while i < len({{x}}):
     if {{x}}[i] in {{value}}:
-        #AUGMENT({{x}}_extract, +, {{x}}[i:i + 1])
         {{x}}_extract += {{x}}[i:i + 1]
     #AUGMENT(i, +, 1)
     i += 1
@@ -181,7 +179,6 @@ if x < y or y > 5:
     <!-- bower:js -->
     <script src="/bower_components/jquery/dist/jquery.js"></script>
     <script src="/bower_components/modernizr/modernizr.js"></script>
-    <script src="/bower_components/handlebars/handlebars.js"></script>
     <script src="/bower_components/bootstrap/dist/js/bootstrap.js"></script>
     <script src="/bower_components/bootbox.js/bootbox.js"></script>
     <!-- endbower -->
