@@ -53,7 +53,7 @@ Tokenizer.prototype.toTokens = function() {
 // GENERATOR
 // ================================================================================
 
-var Generator = function(complexity) {
+var Generator = function() {
   var STRLIST = [
     ,
     ['places', 'places = [\'Home\', \'School\']']
@@ -63,10 +63,7 @@ var Generator = function(complexity) {
     ['places', 'places = [\'Home\', \'School\']']
   ];
 
-  this.complexity = complexity;
-
-
-
+  this.complexity = 0;
 }
 
 Generator.prototype.strList = function() {
@@ -115,7 +112,8 @@ Generator.prototype.floatList = function() {
       for (var i = 0; i < length; ++i) {
         var dp = randIndex(2);
         line += ((randIndex(2) == 0 ? -1 : 1) * (1.0 + Math.random() * 100.0)).toFixed(dp);
-        if (randIndex(2) == 0) {
+        if (randIndex(4) == 0) {
+          // Decrease probability of exponentials
           line += randIndex(2) == 0 ? 'e' : 'E';
           line += (randIndex(2) == 0 ? -1 : 1) * (1 + randIndex(9));
         }
@@ -464,7 +462,6 @@ var Game = function() {
   // Constants
   this.CORRECT = 10;
   this.WRONG = -5;
-  // TODO: Level and time limit progression constants
 
   // Source-related state
   this.lines = [];
@@ -487,10 +484,25 @@ var Game = function() {
   this.errorsFoundElement = $('#errorsfound');
   this.errorsLeftElement = $('#errorsleft');
 
-  this.generator = new Generator(2);
+  // Overlay elements
+  this.rightOverlay = $('#right-overlay');
+  this.wrongOverlay = $('#wrong-overlay');
+  this.bannerOverlay = $('#banner-overlay');
+  this.bannerOverlayLevel = $('#banner-overlay span');
+  this.reportOverlay = $('#report-overlay');
+  this.reportOverlayScore = $('#report-overlay span');
+
+  // For end-of-quiz review
+  this.archive = [];
+  this.previousArchiveElement = $('#archive-prev');
+  this.nextArchiveElement = $('#archive-next');
+
+  this.generator = new Generator();
 }
 
 Game.prototype.start = function() {
+  this.archive = [];
+  this.hideArchive();
   this.setScore(0);
   this.setLevel(0);
   this.nextLevel();
@@ -521,11 +533,13 @@ Game.prototype.clickHandler = function(line, index, element) {
           element.off('click');
           that.incrementScore(that.CORRECT);
           that.incrementErrorsFound();
+          poof(that.rightOverlay, lastMoveEvent);
           return;
         }
       }
       // Incorrect answer given, so reduce score and ask again
       that.incrementScore(that.WRONG);
+      poof(that.wrongOverlay, lastMoveEvent);
       that.clickHandler(line, index, element);
     }
   });
@@ -648,7 +662,6 @@ Game.prototype.handleTick = function() {
     // TODO: complete handling of time's up
     this.clearTimer();
     bootbox.hideAll();
-    bootbox.alert('Game over! Your final score is: ' + this.score);
     // Highlight all remaining corrections
     for (var i = 0; i < this.correctionsByLine.length; ++i) {
       var corrections = this.correctionsByLine[i];
@@ -657,6 +670,16 @@ Game.prototype.handleTick = function() {
         correction[2].addClass('wrong');
       }
     }
+    this.archive.push(this.sourceElement.html());
+    this.sourceElement.html(this.archive[this.archive.length - 1]);
+    this.showArchive();
+    // Show report overlay
+    this.reportOverlayScore.text(this.score);
+    bootbox.alert({
+      className: 'modal-report',
+      title: 'Time\'s Up!',
+      message: this.reportOverlay.html()
+    });
   }
 }
 
@@ -679,6 +702,8 @@ Game.prototype.setLevel = function(level) {
 Game.prototype.incrementErrorsFound = function() {
   this.setErrorsFound(this.errorsFound + 1);
   if (this.errorsFound == this.errorsTotal) {
+    // Archive current program
+    this.archive.push(this.sourceElement.html());
     // Proceed to next level
     this.nextLevel();
   }
@@ -687,13 +712,10 @@ Game.prototype.incrementErrorsFound = function() {
 Game.prototype.nextLevel = function() {
   this.setLevel(this.level + 1);
 
-
-
-  // TODO: Create proper generator
   this.generator.complexity = Math.floor(this.level / 5);
   var source = this.generator.generateProgram();
 
-  var errors = Math.floor(source.length * this.level / (this.level + 5));
+  var errors = Math.floor(source.length * this.level / (this.level + 15));
   this.setErrorsTotal(Math.max(1, errors));
   this.setErrorsFound(0);
 
@@ -701,12 +723,53 @@ Game.prototype.nextLevel = function() {
 
   this.setSource(source);
 
-  // TODO: adapt according to level
   var time = 30;
   if (this.level >= 15) {
     time = Math.floor(time / Math.pow(1.1, this.level - 15));
   }
-  this.setTimer(Math.max(1, time));
+
+  // TODO: Show banner
+  var that = this;
+  this.bannerOverlayLevel.text(this.level);
+  flash(this.bannerOverlay, function() {
+    that.setTimer(Math.max(1, time));
+  });
+}
+
+Game.prototype.previousArchive = function() {
+  if (this.level - 1 < 1) return;
+  this.setLevel(this.level - 1);
+  this.sourceElement.html(this.archive[this.level - 1]);
+  this.showArchive();
+}
+
+Game.prototype.nextArchive = function() {
+  if (this.level + 1 > this.archive.length) return;
+  this.setLevel(this.level + 1);
+  this.sourceElement.html(this.archive[this.level - 1]);
+  this.showArchive();
+}
+
+Game.prototype.hideArchive = function() {
+  this.previousArchiveElement.hide();
+  this.nextArchiveElement.hide();
+}
+
+Game.prototype.showArchive = function() {
+  this.previousArchiveElement.show();
+  this.nextArchiveElement.show();
+
+  if (this.level - 1 < 1) {
+    this.previousArchiveElement.addClass('disabled');
+  } else {
+    this.previousArchiveElement.removeClass('disabled');
+  }
+
+  if (this.level + 1 > this.archive.length) {
+    this.nextArchiveElement.addClass('disabled');
+  } else {
+    this.nextArchiveElement.removeClass('disabled');
+  }
 }
 
 // ================================================================================
@@ -724,6 +787,7 @@ var errorify = function(line) {
   var candidates = [];
 
   var inStringLiteral = false;
+  var listStackDepth = 0;
   var delimiter;
   var delimiterIndex;
 
@@ -798,10 +862,10 @@ var errorify = function(line) {
         candidates.push([token, [index], 1, ['four', 'fur', 'fore']]);
         break;
       case 'if':
-        candidates.push([token, [index], 1, ['in', 'is', 'of']]);
+        candidates.push([token, [index], 1, ['in', 'is', 'of', 'iif', 'iff']]);
         break;
       case 'in':
-        candidates.push([token, [index], 1, ['of', 'on', 'if']]);
+        candidates.push([token, [index], 1, ['of', 'on', 'if', 'iin', 'inn']]);
         break;
       case 'and':
         candidates.push([token, [index], 1, ['&&']]);
@@ -825,17 +889,15 @@ var errorify = function(line) {
       case '==':
         candidates.push([token, [index], 1, ['=']]);
         break;
-      case '+':
-        candidates.push([token, [index], 1, ['++']]);
-        break;
       case ',':
         candidates.push([token, [index], 1, ['.', ';', ',,']]);
         break;
       case '.':
-        candidates.push([token, [index], 1, ['..']]);
-        break;
-      case '-':
-        candidates.push([token, [index], 1, ['--']]);
+        // Do not replace decimal points in float literals
+        // Take advantage of fact that we only have float literals in list literals
+        if (listStackDepth == 0) {
+          candidates.push([token, [index], 1, ['..', ',']]);
+        }
         break;
       case '!':
         if (index + 1 < line.length && line[index + 1] === '=') {
@@ -862,8 +924,21 @@ var errorify = function(line) {
       }
       candidates.push([token, [index], 1, options]);
     }
-    if (token.charAt(0).match(/\[|\]/) && token.length > 1) {
-      candidates.push([token, [index], 1, [token.slice(1)]]);
+    if (token.charAt(0).match(/\[|\]/)) {
+      // Keep track of whether we are in a list literal
+      for (var i = 0; i < token.length; ++i) {
+        switch (token.charAt(i)) {
+          case '[':
+            ++listStackDepth;
+            break;
+          case ']':
+            --listStackDepth;
+            break;
+        }
+      }
+      if (token.length > 1) {
+        candidates.push([token, [index], 1, [token.slice(1)]]);
+      }
     }
 
     // Update previous non-space, non-literal token
@@ -921,19 +996,76 @@ var randIndex = function(length) {
   return Math.floor(Math.random() * length);
 }
 
+var flash = function(e, callback) {
+  var dialog = bootbox.dialog({
+    className: 'modal-banner',
+    message: e.html(),
+    closeButton: false
+  });
+
+  setTimeout(function() {
+    dialog.modal('hide');
+    if (callback) {
+      callback();
+    }
+  }, 1000);
+}
+
+var poof = function(e, event) {
+  e.show();
+  var left = event.pageX - e.innerWidth() / 2;
+  var top = event.pageY - e.innerHeight() / 2;
+  e.css({
+    opacity: 1
+  });
+  e.offset({
+    left: left,
+    top: top
+  })
+  e.animate({
+    top: top - 100,
+    opacity: 0
+  }, {
+    duration: 500,
+    complete: function() {
+      e.hide();
+    }
+  });
+}
+
 // ================================================================================
 // GLOBALS
 // ================================================================================
 
 // Global game object.
 var game;
+// Last onmousemove event.
+var lastMoveEvent;
 
 $(document).ready(function() {
   game = new Game();
   game.start();
 
-  $('#main').on('click', function() {
+  $(document).on('mousemove', function(event) {
+    lastMoveEvent = event;
+  });
+
+  $('#archive-prev').on('click', function() {
+    game.previousArchive();
+  });
+
+  $('#archive-next').on('click', function() {
+    game.nextArchive();
+  });
+
+  $('#restart').on('click', function() {
     game.start();
+  });
+
+  $('#quit').on('click', function(event) {
+    var e = $('#report-overlay');
+    console.log(event);
+    poof(e, event);
   });
 });
 

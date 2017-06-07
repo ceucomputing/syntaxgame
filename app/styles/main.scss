@@ -10,30 +10,108 @@ body {
 }
 
 #left {
+  padding-right: 24px;
+}
+
+  #left .well {
+    background: gray;
+    border-style: outset;
+    border-radius: 10px;
+    color: white;
+    text-align: center;
+  }
+
+  #left .row-left {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  #left .row-right {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+  }
+
+  #left .score-well {
+    background: goldenrod;
+    color: white;
+  }
+
+  #left h2 {
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  #left .number {
+    font-size: 64px;
+    font-weight: bold;
+    line-height: 72px;
+  }
+
+  #left input {
+    background-color: chocolate;
+    border-color: chocolate;
+    color: white;
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    padding: 12px;
+    text-transform: uppercase;
+  }
+
+  #left input:hover {
+    background-color: sienna;
+    border-color: sienna;
+  }
+
+#right {
   background: white;
-  border-radius: 5px;
+  border-style: outset;
+  border-radius: 10px;
   margin-bottom: 24px;
   padding: 24px;
 }
 
-  #left h1 {
+  #right h1 {
     border-bottom: 1px dashed gray;
-    font-family: Georgia, serif;
+    font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
     font-size: 36px;
     font-weight: bold;
     margin-bottom: 12px;
     margin-top: 0;
     padding-bottom: 12px;
+    text-align: center;
     text-transform: uppercase;
+  }
+
+  #right a {
+    text-decoration: none;
+  }
+
+  #right a.disabled {
+    color: silver;
+  }
+
+  #right a:hover {
+    text-decoration: none;
+  }
+
+  #right a:active {
+    text-decoration: none;
   }
 
 #source {
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: 24px;
   height: 600px;
-  overflow-y: scroll;
+  overflow-x: auto;
+  overflow-y: auto;
   padding: 0;
+  word-wrap: normal;
 }
 
   #source.disabled a {
@@ -44,16 +122,11 @@ body {
     border: 1px solid transparent;
     border-radius: 5px;
     position: relative;
-    text-decoration: none;
+
   }
 
   #source a:hover {
     border: 1px solid gray;
-    text-decoration: none;
-  }
-
-  #source a:active {
-    text-decoration: none;
   }
 
   #source a.correct {
@@ -64,33 +137,6 @@ body {
     border: 1px solid red;
   }
 
-#right { }
-
-  #right .well {
-    background: gray;
-    color: white;
-    text-align: center;
-  }
-
-  #right .score-well {
-    background: goldenrod;
-    color: white;
-  }
-
-  #right h2 {
-    font-family: Georgia, serif;
-    font-size: 24px;
-    font-weight: bold;
-    margin: 0;
-    text-transform: uppercase;
-  }
-
-  #right .number {
-    font-size: 64px;
-    font-weight: bold;
-    line-height: 72px;
-  }
-
 .bootbox-input {
   font-family: monospace;
   font-size: 72px;
@@ -98,90 +144,40 @@ body {
   text-align: center;
 }
 
-// .browserupgrade {
-//   margin: 0.2em 0;
-//   background: #ccc;
-//   color: #000;
-//   padding: 0.2em 0;
-// }
+.modal-banner {
+  margin-top: 100px;
+}
 
-// /* Space out content a bit */
-// body {
-//   padding-top: 20px;
-//   padding-bottom: 20px;
-// }
+  .modal-banner .modal-content {
+    background-color: goldenrod;
+  }
 
-// /* Everything but the jumbotron gets side spacing for mobile first views */
-// .header,
-// .marketing,
-// .footer {
-//   padding-right: 15px;
-//   padding-left: 15px;
-// }
+.modal-report {
+  margin-top: 200px;
+}
 
-// /* Custom page header */
-// .header {
-//   padding-bottom: 20px;
-//   border-bottom: 1px solid #e5e5e5;
-// }
+.overlay {
+  display: none;
+  position: absolute;
+  z-index: 2000;
+}
 
-// /* Make the masthead heading the same height as the navigation */
-// .header h3 {
-//   margin-top: 0;
-//   margin-bottom: 0;
-//   line-height: 40px;
-// }
+.banner {
+  color: white;
+  font-size: 72px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+}
 
-// /* Custom page footer */
-// .footer {
-//   padding-top: 19px;
-//   color: #777;
-//   border-top: 1px solid #e5e5e5;
-// }
+.report {
+  text-align: center;
+}
 
-// /* Customize container */
-// @media (min-width: 768px) {
-//   .container {
-//     max-width: 730px;
-//   }
-// }
-// .container-narrow > hr {
-//   margin: 30px 0;
-// }
-
-// /* Main marketing message and sign up button */
-// .jumbotron {
-//   text-align: center;
-//   border-bottom: 1px solid #e5e5e5;
-// }
-// .jumbotron .btn {
-//   padding: 14px 24px;
-//   font-size: 21px;
-// }
-
-// /* Supporting marketing content */
-// .marketing {
-//   margin: 40px 0;
-// }
-// .marketing p + h4 {
-//   margin-top: 28px;
-// }
-
-// /* Responsive: Portrait tablets and up */
-// @media screen and (min-width: 768px) {
-//   /* Remove the padding we set earlier */
-//   .header,
-//   .marketing,
-//   .footer {
-//     padding-right: 0;
-//     padding-left: 0;
-//   }
-//   /* Space out the masthead */
-//   .header {
-//     margin-bottom: 30px;
-//   }
-//   /* Remove the bottom border on the jumbotron for visual effect */
-//   .jumbotron {
-//     border-bottom: 0;
-//   }
-// }
+  .report div {
+    color: white;
+    font-size: 72px;
+    font-weight: bold;
+    margin-top: -125px;
+    margin-bottom: 24px;
+  }

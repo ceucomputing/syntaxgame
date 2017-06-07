@@ -23,71 +23,17 @@
     <!-- endbuild -->
   </head>
   <body>
-    <!--[if IE]>
-      <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
-    <![endif]-->
-
-    <!--
-    <div class="container">
-      <div class="header">
-        <ul class="nav nav-pills pull-right">
-          <li class="active">
-            <a href="#">Home</a>
-          </li>
-          <li>
-            <a href="#">About</a>
-          </li>
-          <li>
-            <a href="#">Contact</a>
-          </li>
-        </ul>
-        <h3 class="text-muted">syntaxgame</h3>
-      </div>
-
-      <div class="jumbotron">
-        <h1>'Allo, 'Allo!</h1>
-        <p class="lead">Always a pleasure scaffolding your apps.</p>
-        <p><a class="btn btn-lg btn-success" href="#">Splendid!</a></p>
-      </div>
-
-      <div class="row marketing">
-        <div class="col-lg-6">
-          <h4>HTML5 Boilerplate</h4>
-          <p>HTML5 Boilerplate is a professional front-end template for building fast, robust, and adaptable web apps or sites.</p>
-
-          <h4>Sass</h4>
-          <p>Sass is the most mature, stable, and powerful professional grade CSS extension language in the world.</p>
-
-          <h4>Bootstrap</h4>
-          <p>Sleek, intuitive, and powerful mobile first front-end framework for faster and easier web development.</p>
-
-          <h4>Modernizr</h4>
-          <p>Modernizr is an open-source JavaScript library that helps you build the next generation of HTML5 and CSS3-powered websites.</p>
-        </div>
-      </div>
-
-      <div class="footer">
-        <p>♥ from the Yeoman team</p>
-      </div>
-    </div>
-    -->
-
 
     <div class="container">
 
-      <div id="left" class="col-md-8">
-        <h1>Program <span id="level">1</span></h1>
-        <pre id="source"></pre>
-      </div>
+      <div id="left" class="col-md-4">
 
-      <div id="right" class="col-md-4">
-
-        <div class="well col-md-6">
-          <h2>Errors Found</h2>
+        <div class="well col-md-6 row-left">
+          <h2>Errors<br>Found</h2>
           <div id="errorsfound" class="number">0</div>
         </div>
-        <div class="well col-md-6">
-          <h2>Errors Left</h2>
+        <div class="well col-md-6 row-right">
+          <h2>Errors<br>Left</h2>
           <div id="errorsleft" class="number">0</div>
         </div>
         <div class="well col-md-12">
@@ -100,70 +46,43 @@
         </div>
 
         <form>
-          <input id="main" class="col-md-6" type="button" value="Entry Point">
-          <input class="col-md-6" type="button" value="Hello">
+          <input id="restart" class="col-md-6 row-left" type="button" value="Restart">
+          <input id="quit" class="col-md-6 row-right" type="button" value="Quit">
         </form>
 
       </div>
 
+      <div id="right" class="col-md-8">
+        <h1>
+          <a id="archive-prev" href="#">&#9664;</a>
+          Program <span id="level">1</span>
+          <a id="archive-next" href="#">&#9654;</a>
+        </h1>
+        <pre id="source"></pre>
+      </div>
+
     </div>
 
-<script id="entry-template-temp" type="text/x-handlebars-template"># Input
-input_text = input("Enter the input text: ")
+    <div id="right-overlay" class="overlay">
+      <img src="images/right.png" alt="+10">
+    </div>
 
-# Process
-acronym = ""
-index = 0
-previous_char = ' '
-while index < len(input_text):
-    current_char = input_text[index]
-    if previous_char.isspace() and \
-    not current_char.isspace():
-        acronym += current_char.upper()
-    index += 1
-    previous_char = current_char
+    <div id="wrong-overlay" class="overlay">
+      <img src="images/wrong.png" alt="-5">
+    </div>
 
-# Output
-print(acronym)
+    <div id="banner-overlay" class="overlay">
+      <div class="banner">
+        Level <span>15</span>
+      </div>
+    </div>
 
-</script>
-
-<script id="entry-template" type="text/x-handlebars-template">#LISTEXTRACT_PART1
-{{x}}_extract = []
-
-#LISTEXTRACT_PART2_OPTION1
-for i in {{x}}:
-    if i in {{value}}:
-        #AUGMENT({{x}}_extract, +, i)
-        {{x}}_extract += [i]
-
-#LISTEXTRACT_PART2_OPTION2
-for i in range(len({{x}})):
-    if {{x}}[i] in {{value}}:
-        {{x}}_extract += {{x}}[i:i + 1]
-
-#LISTEXTRACT_PART2_OPTION3
-i = 0
-#WHILE_LT(i, len({{x}}))
-while i < len({{x}}):
-    if {{x}}[i] in {{value}}:
-        {{x}}_extract += {{x}}[i:i + 1]
-    #AUGMENT(i, +, 1)
-    i += 1
-
-#LISTEXTRACT_PART3
-#PRINT('Extract: ', {{x}}_extract)
-print('Extract: ' + str({{x}}_extract))
-
-if len({{x}}) == 0:
-    print('Hello')
-    while True:
-        break
-
-if x < y or y > 5:
-  print('Hello')
-  import random
-  random.randint(0, 44) == 2 % 12</script>
+    <div id="report-overlay" class="overlay">
+      <div class="report">
+        <img src="images/report.png" alt="Your final score is:">
+        <div><span>15</span></div>
+      </div>
+    </div>
 
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
     <script>
@@ -202,5 +121,6 @@ if x < y or y > 5:
     <!-- build:js scripts/main.js -->
     <script src="scripts/main.js"></script>
     <!-- endbuild -->
+
   </body>
 </html>
