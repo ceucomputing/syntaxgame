@@ -9,6 +9,22 @@ body {
   padding: 24px;
 }
 
+#title {
+  left: 50%;
+  margin-left: -400px;
+  position: absolute;
+  padding-top: 100px;
+  width: 800px;
+}
+
+  #title form {
+    text-align: right;
+  }
+
+#game {
+  display: none;
+}
+
 #left {
   padding-right: 24px;
 }
@@ -50,7 +66,7 @@ body {
     line-height: 72px;
   }
 
-  #left input {
+  .container input {
     background-color: chocolate;
     border-color: chocolate;
     color: white;
@@ -62,7 +78,7 @@ body {
     text-transform: uppercase;
   }
 
-  #left input:hover {
+  .container input:hover {
     background-color: sienna;
     border-color: sienna;
   }

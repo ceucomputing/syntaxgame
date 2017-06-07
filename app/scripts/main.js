@@ -67,7 +67,7 @@ var Generator = function() {
 }
 
 Generator.prototype.strList = function() {
-  switch (randIndex(4)) {
+  switch (randIndex(5)) {
     case 0:
       return ['names', 'names = [\'Siti\', \'Alex\', \'Bala\']'];
     case 1:
@@ -76,6 +76,8 @@ Generator.prototype.strList = function() {
       return ['fruits', 'fruits = [\'Apple\', \'Orange\', \'Pear\']'];
     case 3:
       return ['s', 's = ["A", "B", "C", "D"]'];
+    case 4:
+      return ['colours', 'colours = ["red", "orange", "green", "blue"]'];
   }
 }
 
@@ -144,12 +146,8 @@ Generator.prototype.numberList = function() {
 
 Generator.prototype.expanders = {
   'PROGRAM': function() {
-    var choices = 4;
-    if (this.complexity == 0) {
-      // DEBUG: change back to 4 afterwards
-      choices = 4;
-    }
-    switch (randIndex(choices)) {
+    // switch (randIndex(5)) {
+    switch (randIndex(5)) {
       case 0:
         return ['@MIN'];
       case 1:
@@ -377,7 +375,87 @@ Generator.prototype.expanders = {
     }
   },
 
+  // Extract function
+  'EXTRACT': function() {
+    switch (this.complexity) {
+      case 0:
+        var list = this.strList();
+        return [
+          list[1],
+          list[0] + '_extract = []',
+          '@EXTRACT_PART0 STR ' + list[0],
+          '@PRINT 0 Extract ' + list[0] + '_extract'
+        ];
+      default:
+        var list1 = this.intList();
+        var list2 = this.intList();
+        // Rename second list in case it clashes with first
+        list2[1] = 'other' + list2[1].slice(list2[0].length);
+        list2[0] = 'other';
+        return [
+          list1[1],
+          list2[1],
+          list1[0] + '_extract = []',
+          '@EXTRACT_PART0 LIST ' + list1[0] + ' ' + list2[0],
+          '@PRINT 0 Extract ' + list1[0] + '_extract'
+        ];
+    }
+  },
+  'EXTRACT_PART0': function(type, x, y) {
+    switch (randIndex(3)) {
+      case 0:
+        return [
+          'for i in range(len(' + x + ')):',
+          '@IF' + type + ' 1 ' + x + '[i]' + (y ? ' ' + y : ''),
+          '@AUGMENT 2 ' + x + '_extract + ' + x + '[i:i+1]'
+        ];
+      case 1:
+        return [
+          'i = 0',
+          '@LT 0 while i len(' + x + ')',
+          '@IF' + type + ' 1 ' + x + '[i]' + (y ? ' ' + y : ''),
+          '@AUGMENT 2 ' + x + '_extract + [' + x + '[i]]',
+          '@AUGMENT 1 i + 1'
+        ];
+      case 2:
+        return [
+          'for i in ' + x + ':',
+          '@IF' + type + ' 1 i' + (y ? ' ' + y : ''),
+          '@AUGMENT 2 ' + x + '_extract + [i]'
+        ];
+    }
+  },
+
   // Utility functions
+  'IFSTR': function(indent, x) {
+    var s = spaces(indent);
+    var method;
+    switch (randIndex(6)) {
+      case 0:
+        method = 'isalpha'
+        break;
+      case 1:
+        method = 'isalnum'
+        break;
+      case 2:
+        method = 'isdigit'
+        break;
+      case 3:
+        method = 'isspace'
+        break;
+      case 4:
+        method = 'islower'
+        break;
+      case 5:
+        method = 'isupper'
+        break;
+    }
+    return [s + 'if ' + x + '.' + method + '():'];
+  },
+  'IFLIST': function(indent, x, y) {
+    var s = spaces(indent);
+    return [s + 'if ' + x + ' in ' + y + ':'];
+  },
   'IFLEN0': function(indent, x) {
     var s = spaces(indent);
     switch (randIndex(2)) {
@@ -758,6 +836,12 @@ Game.prototype.hideArchive = function() {
 Game.prototype.showArchive = function() {
   this.previousArchiveElement.show();
   this.nextArchiveElement.show();
+  if (this.level == this.archive.length) {
+    this.setErrorsFound(this.errorsFound);
+  } else {
+    this.errorsFoundElement.text('-');
+    this.errorsLeftElement.text('-');
+  }
 
   if (this.level - 1 < 1) {
     this.previousArchiveElement.addClass('disabled');
@@ -1044,10 +1128,17 @@ var lastMoveEvent;
 
 $(document).ready(function() {
   game = new Game();
-  game.start();
+  var titleDiv = $('#title');
+  var gameDiv = $('#game');
 
   $(document).on('mousemove', function(event) {
     lastMoveEvent = event;
+  });
+
+  $('#start').on('click', function() {
+    titleDiv.slideUp();
+    gameDiv.slideDown();
+    game.start();
   });
 
   $('#archive-prev').on('click', function() {
@@ -1063,9 +1154,9 @@ $(document).ready(function() {
   });
 
   $('#quit').on('click', function(event) {
-    var e = $('#report-overlay');
-    console.log(event);
-    poof(e, event);
+    game.clearTimer();
+    gameDiv.slideUp();
+    titleDiv.slideDown();
   });
 });
 
