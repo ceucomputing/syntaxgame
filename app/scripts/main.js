@@ -55,15 +55,6 @@ Tokenizer.prototype.toTokens = function() {
 // ================================================================================
 
 var Generator = function() {
-  var STRLIST = [
-    ,
-    ['places', 'places = [\'Home\', \'School\']']
-  ];
-  var LIST = [
-    ['names', 'names = [\'Siti\', \'Alex\', \'Bala\']'],
-    ['places', 'places = [\'Home\', \'School\']']
-  ];
-
   this.complexity = 0;
 }
 
@@ -904,6 +895,13 @@ AudioManager.prototype.play = function(track) {
   this.currentMusic.play();
 }
 
+AudioManager.prototype.stop = function() {
+  if (this.currentMusic !== null) {
+    this.currentMusic.pause();
+    this.currentMusic = null;
+  }
+}
+
 AudioManager.prototype.restart = function(track) {
   if (this.currentMusic === this.music[track]) {
     this.currentMusic.currentTime = 0;
@@ -1245,9 +1243,13 @@ $(document).ready(function() {
   });
 
   $('#howtoplay').on('click', function(event) {
+    am.stop();
     bootbox.alert({
       title: 'How to Play',
-      message: $('#howtoplay-overlay').html()
+      message: $('#howtoplay-overlay').html(),
+      callback: function() {
+        am.play('menu');
+      }
     });
   });
 
