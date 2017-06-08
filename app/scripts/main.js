@@ -1244,6 +1244,13 @@ $(document).ready(function() {
     am.play('menu');
   });
 
+  $('#howtoplay').on('click', function(event) {
+    bootbox.alert({
+      title: 'How to Play',
+      message: $('#howtoplay-overlay').html()
+    });
+  });
+
   $('#credits').on('click', function(event) {
     bootbox.alert({
       title: 'Credits',
