@@ -1,5 +1,6 @@
 // Syntax Error Game
 
+// 2017-06-08: Added sound effects and music
 // 2017-06-06: Implemented basic generator
 // 2017-96-05: Implemented basic UI
 // 2017-06-02: Implemented syntax error generation and basic game
@@ -361,7 +362,8 @@ Generator.prototype.expanders = {
           x + '_index = None',
           'for i in range(len(' + x + ')):',
           spaces(1) + 'if ' + x + '[i] == search:',
-          spaces(2) + x + '_index = i'
+          spaces(2) + x + '_index = i',
+          spaces(2) + 'break'
         ];
       case 1:
         return [
@@ -370,6 +372,7 @@ Generator.prototype.expanders = {
           '@LT 0 while i len(' + x + ')',
           spaces(1) + 'if ' + x + '[i] == search:',
           spaces(2) + x + '_index = i',
+          spaces(2) + 'break',
           '@AUGMENT 1 i + 1'
         ];
     }
@@ -506,13 +509,7 @@ Generator.prototype.expanders = {
 }
 
 Generator.prototype.generateProgram = function() {
-
-  // Strategy
-  // Expand until no changes!
-  // @AVERAGE2 {{x}}
-
   var program = ['@PROGRAM'];
-
 
   var changed;
   do {
@@ -536,7 +533,7 @@ Generator.prototype.generateProgram = function() {
 // ================================================================================
 
 // Encapsulates game state and functionality.
-var Game = function() {
+var Game = function(am) {
   // Constants
   this.CORRECT = 10;
   this.WRONG = -5;
@@ -575,6 +572,10 @@ var Game = function() {
   this.previousArchiveElement = $('#archive-prev');
   this.nextArchiveElement = $('#archive-next');
 
+  // Audio manager
+  this.am = am;
+
+  // Program generator
   this.generator = new Generator();
 }
 
@@ -612,12 +613,14 @@ Game.prototype.clickHandler = function(line, index, element) {
           that.incrementScore(that.CORRECT);
           that.incrementErrorsFound();
           poof(that.rightOverlay, lastMoveEvent);
+          that.am.playEffect('ding');
           return;
         }
       }
       // Incorrect answer given, so reduce score and ask again
       that.incrementScore(that.WRONG);
       poof(that.wrongOverlay, lastMoveEvent);
+      that.am.playEffect('buzzer');
       that.clickHandler(line, index, element);
     }
   });
@@ -737,7 +740,6 @@ Game.prototype.setTimeLeft = function(timeLeft) {
 Game.prototype.handleTick = function() {
   this.setTimeLeft(this.timeLeft - 1);
   if (this.timeLeft == 0) {
-    // TODO: complete handling of time's up
     this.clearTimer();
     bootbox.hideAll();
     // Highlight all remaining corrections
@@ -758,7 +760,15 @@ Game.prototype.handleTick = function() {
       title: 'Time\'s Up!',
       message: this.reportOverlay.html()
     });
+    this.am.playEffect('ding');
+    this.am.play('report');
+    return;
   }
+  if (this.timeLeft <= 5) {
+    flashOpacity(this.timeElement);
+    this.am.playEffect('alarm');
+  }
+  this.am.playEffect('tick');
 }
 
 Game.prototype.setErrorsTotal = function(errorsTotal) {
@@ -780,6 +790,8 @@ Game.prototype.setLevel = function(level) {
 Game.prototype.incrementErrorsFound = function() {
   this.setErrorsFound(this.errorsFound + 1);
   if (this.errorsFound == this.errorsTotal) {
+    // Stop timer ASAP
+    this.clearTimer();
     // Archive current program
     this.archive.push(this.sourceElement.html());
     // Proceed to next level
@@ -806,12 +818,13 @@ Game.prototype.nextLevel = function() {
     time = Math.floor(time / Math.pow(1.1, this.level - 15));
   }
 
-  // TODO: Show banner
   var that = this;
   this.bannerOverlayLevel.text(this.level);
   flash(this.bannerOverlay, function() {
     that.setTimer(Math.max(1, time));
+    that.am.playEffect('harp');
   });
+  this.am.playEffect('swoosh');
 }
 
 Game.prototype.previousArchive = function() {
@@ -854,6 +867,54 @@ Game.prototype.showArchive = function() {
   } else {
     this.nextArchiveElement.removeClass('disabled');
   }
+}
+
+// ================================================================================
+// AUDIOMANAGER
+// ================================================================================
+
+// Manager to make sure only music track is played at a time.
+var AudioManager = function() {
+  this.currentMusic = null;
+  this.music = {
+    menu: $('#menu-music')[0],
+    game: $('#game-music')[0],
+    report: $('#report-music')[0]
+  };
+  for (var track in this.music) {
+    this.music[track].loop = true;
+  }
+  this.effects = {
+    swoosh: $('#swoosh-effect')[0],
+    tick: $('#tick-effect')[0],
+    alarm: $('#alarm-effect')[0],
+    ding: $('#ding-effect')[0],
+    buzzer: $('#buzzer-effect')[0],
+    harp: $('#harp-effect')[0]
+  }
+}
+
+AudioManager.prototype.play = function(track) {
+  if (this.currentMusic === this.music[track]) return;
+  if (this.currentMusic !== null) {
+    this.currentMusic.pause();
+  }
+  this.currentMusic = this.music[track];
+  this.currentMusic.currentTime = 0;
+  this.currentMusic.play();
+}
+
+AudioManager.prototype.restart = function(track) {
+  if (this.currentMusic === this.music[track]) {
+    this.currentMusic.currentTime = 0;
+  } else {
+    this.play(track);
+  }
+}
+
+AudioManager.prototype.playEffect = function(effect) {
+  this.effects[effect].currentTime = 0;
+  this.effects[effect].play();
 }
 
 // ================================================================================
@@ -938,6 +999,9 @@ var errorify = function(line) {
         break;
       case 'None':
         candidates.push([token, [index], 1, ['none', 'NONE']]);
+        break;
+      case 'break':
+        candidates.push([token, [index], 1, ['brake', 'braek']]);
         break;
       case 'while':
         candidates.push([token, [index], 1, ['when', 'where', 'which']]);
@@ -1117,17 +1181,35 @@ var poof = function(e, event) {
   });
 }
 
+var flashOpacity = function(e) {
+  e.animate({
+    opacity: 0
+  }, {
+    duration: 100,
+    complete: function() {
+      e.animate({
+        opacity: 1
+      }, 100);
+    }
+  });
+}
+
 // ================================================================================
 // GLOBALS
 // ================================================================================
 
+// Global audio manager.
+var am;
 // Global game object.
 var game;
 // Last onmousemove event.
 var lastMoveEvent;
 
 $(document).ready(function() {
-  game = new Game();
+  am = new AudioManager();
+  am.play('menu');
+
+  game = new Game(am);
   var titleDiv = $('#title');
   var gameDiv = $('#game');
 
@@ -1139,6 +1221,7 @@ $(document).ready(function() {
     titleDiv.slideUp();
     gameDiv.slideDown();
     game.start();
+    am.play('game');
   });
 
   $('#archive-prev').on('click', function() {
@@ -1151,12 +1234,21 @@ $(document).ready(function() {
 
   $('#restart').on('click', function() {
     game.start();
+    am.restart('game');
   });
 
   $('#quit').on('click', function(event) {
     game.clearTimer();
     gameDiv.slideUp();
     titleDiv.slideDown();
+    am.play('menu');
+  });
+
+  $('#credits').on('click', function(event) {
+    bootbox.alert({
+      title: 'Credits',
+      message: $('#credits-overlay').html()
+    });
   });
 });
 

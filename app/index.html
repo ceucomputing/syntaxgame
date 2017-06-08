@@ -24,10 +24,40 @@
   </head>
   <body>
 
+    <audio id="menu-music" preload="auto">
+      <source src="media/Furious Freak.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="game-music" preload="auto">
+      <source src="media/The Lift.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="report-music" preload="auto">
+      <source src="media/Inspired.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio id="swoosh-effect" preload="auto">
+      <source src="media/swoosh.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="tick-effect" preload="auto">
+      <source src="media/tick.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="alarm-effect" preload="auto">
+      <source src="media/alarm.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="ding-effect" preload="auto">
+      <source src="media/ding.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="buzzer-effect" preload="auto">
+      <source src="media/buzzer.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="harp-effect" preload="auto">
+      <source src="media/harp.mp3" type="audio/mpeg">
+    </audio>
+
     <div id="title" class="container">
       <img src="images/title.png" alt="Find the Syntax Errors!">
       <form>
         <input id="instructions" type="button" value="How to Play">
+        <input id="credits" type="button" value="Credits">
         <input id="start" type="button" value="Start Game">
       </form>
     </div>
@@ -89,6 +119,26 @@
       <div class="report">
         <img src="images/report.png" alt="Your final score is:">
         <div><span>15</span></div>
+      </div>
+    </div>
+
+    <div id="credits-overlay" class="overlay">
+      <div class="credits">
+        <p>"Furious Freak"<br>Kevin MacLeod (incompetech.com)<br>
+        Licensed under Creative Commons: By Attribution 3.0<br>
+        http://creativecommons.org/licenses/by/3.0</p>
+
+        <p>"Inspired"<br>Kevin MacLeod (incompetech.com)<br>
+        Licensed under Creative Commons: By Attribution 3.0<br>
+        http://creativecommons.org/licenses/by/3.0</p>
+
+        <p>"swosh.aif"<br>man (freesound.org)<br>
+        Licensed under Creative Commons: By Attribution 3.0<br>
+        http://creativecommons.org/licenses/by/3.0</p>
+
+        <p>"The Lift"<br>Kevin MacLeod (incompetech.com)<br>
+        Licensed under Creative Commons: By Attribution 3.0<br>
+        http://creativecommons.org/licenses/by/3.0</p>
       </div>
     </div>
 
