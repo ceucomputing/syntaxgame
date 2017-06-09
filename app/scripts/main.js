@@ -1,10 +1,29 @@
 // Syntax Error Game
 
+// 2017-06-09: Fixed compatibility with IE11
 // 2017-06-08: Added sound effects and music
 // 2017-06-06: Implemented basic generator
 // 2017-96-05: Implemented basic UI
 // 2017-06-02: Implemented syntax error generation and basic game
 // 2017-06-01: Implemented custom tokenizer
+
+// ================================================================================
+// POLYFILLS
+// ================================================================================
+
+// Polyfill for String.prototype.endsWith
+// https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/String/endsWith
+if (!String.prototype.endsWith) {
+  String.prototype.endsWith = function(searchString, position) {
+      var subjectString = this.toString();
+      if (typeof position !== 'number' || !isFinite(position) || Math.floor(position) !== position || position > subjectString.length) {
+        position = subjectString.length;
+      }
+      position -= searchString.length;
+      var lastIndex = subjectString.lastIndexOf(searchString, position);
+      return lastIndex !== -1 && lastIndex === position;
+  };
+}
 
 // ================================================================================
 // TOKENIZER
@@ -1205,7 +1224,10 @@ var lastMoveEvent;
 
 $(document).ready(function() {
   am = new AudioManager();
-  am.play('menu');
+  // Workaround for InvalidStateError on IE11
+  $('#menu-music').on('loadedmetadata', function() {
+    am.play('menu');
+  });
 
   game = new Game(am);
   var titleDiv = $('#title');
