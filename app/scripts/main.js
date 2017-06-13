@@ -78,17 +78,44 @@ var Generator = function() {
 }
 
 Generator.prototype.strList = function() {
+  var result;
   switch (randIndex(5)) {
     case 0:
-      return ['names', 'names = [\'Siti\', \'Alex\', \'Bala\']'];
+      result = ['names', 'names = [\'Siti\', \'Alex\', \'Bala\']'];
+      break;
     case 1:
-      return ['places', 'places = [\'Home\', \'School\']'];
+      result = ['places', 'places = [\'Home\', \'School\']'];
+      break;
     case 2:
-      return ['fruits', 'fruits = [\'Apple\', \'Orange\', \'Pear\']'];
+      result = ['fruits', 'fruits = [\'Apple\', \'Orange\', \'Pear\']'];
+      break;
     case 3:
-      return ['s', 's = ["A", "B", "C", "D"]'];
+      result = ['s', 's = [\'A\', \'B\', \'C\', \'D\']'];
+      break;
     case 4:
-      return ['colours', 'colours = ["red", "orange", "green", "blue"]'];
+      result = ['colours', 'colours = [\'red\', \'orange\', \'green\', \'blue\']'];
+      break;
+  }
+  if (randIndex(2) == 0) {
+    result[1] = result[1].replace(/\'/g, '"');
+  }
+  return result;
+}
+
+Generator.prototype.strMethod = function() {
+  switch (randIndex(6)) {
+    case 0:
+      return 'isalpha'
+    case 1:
+      return 'isalnum'
+    case 2:
+      return 'isdigit'
+    case 3:
+      return 'isspace'
+    case 4:
+      return 'islower'
+    case 5:
+      return 'isupper'
   }
 }
 
@@ -157,8 +184,8 @@ Generator.prototype.numberList = function() {
 
 Generator.prototype.expanders = {
   'PROGRAM': function() {
-    // switch (randIndex(5)) {
-    switch (randIndex(5)) {
+    var choice = this.complexity == 0 ? randIndex(4) : randIndex(5);
+    switch (choice) {
       case 0:
         return ['@MIN'];
       case 1:
@@ -390,7 +417,7 @@ Generator.prototype.expanders = {
 
   // Extract function
   'EXTRACT': function() {
-    switch (this.complexity) {
+    switch (randIndex(2)) {
       case 0:
         var list = this.strList();
         return [
@@ -399,7 +426,7 @@ Generator.prototype.expanders = {
           '@EXTRACT_PART0 STR ' + list[0],
           '@PRINT 0 Extract ' + list[0] + '_extract'
         ];
-      default:
+      case 1:
         var list1 = this.intList();
         var list2 = this.intList();
         // Rename second list in case it clashes with first
@@ -442,28 +469,17 @@ Generator.prototype.expanders = {
   // Utility functions
   'IFSTR': function(indent, x) {
     var s = spaces(indent);
-    var method;
-    switch (randIndex(6)) {
-      case 0:
-        method = 'isalpha'
-        break;
-      case 1:
-        method = 'isalnum'
-        break;
-      case 2:
-        method = 'isdigit'
-        break;
-      case 3:
-        method = 'isspace'
-        break;
-      case 4:
-        method = 'islower'
-        break;
-      case 5:
-        method = 'isupper'
-        break;
+    var method = this.strMethod();
+    if (randIndex(2) == 0) {
+      return [s + 'if ' + x + '.' + method + '():'];
+    } else {
+      var method2;
+      do {
+        method2 = this.strMethod();
+      } while (method2 === method);
+      var op = randIndex(2) == 0 ? 'and' : 'or';
+      return [s + 'if ' + x + '.' + method + '() ' + op + ' ' + x + '.' + method2 + '():'];
     }
-    return [s + 'if ' + x + '.' + method + '():'];
   },
   'IFLIST': function(indent, x, y) {
     var s = spaces(indent);
@@ -471,22 +487,28 @@ Generator.prototype.expanders = {
   },
   'IFLEN0': function(indent, x) {
     var s = spaces(indent);
-    switch (randIndex(2)) {
+    switch (randIndex(3)) {
       case 0:
         return [s + 'if len(' + x + ') == 0:'];
       case 1:
         return [s + 'if ' + x + ' == []:'];
+      case 2:
+        return [s + 'if not len(' + x + ') > 0:'];
     }
   },
   'IFLENNOT0': function(indent, x) {
     var s = spaces(indent);
-    switch (randIndex(3)) {
+    switch (randIndex(5)) {
       case 0:
         return [s + 'if len(' + x + ') != 0:'];
       case 1:
         return [s + 'if len(' + x + ') > 0:'];
       case 2:
         return [s + 'if ' + x + ' != []:'];
+      case 3:
+        return [s + 'if not len(' + x + ') == 0:'];
+      case 4:
+        return [s + 'if not ' + x + ' == []:'];
     }
   },
   'LT': function(indent, keyword, x, y) {
